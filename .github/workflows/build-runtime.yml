@@ -1,0 +1,69 @@
+name: build-runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      node_version:
+        description: 'Node.js 版本（如 v24.19.0）'
+        required: true
+        default: 'v24.19.0'
+      dsh_version:
+        description: '@deepseek-ai/dsh npm 版本（latest）'
+        required: true
+        default: 'latest'
+  push:
+    tags: ['runtime-*']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Android NDK
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: 28.2.13676358
+
+      - name: 安装构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 g++ make curl xz-utils
+
+      - name: 交叉编译 Node (android-arm64)
+        run: |
+          set -euo pipefail
+          NODE_VERSION=${{ inputs.node_version || 'v24.19.0' }}
+          NDK_PATH=$ANDROID_NDK_HOME
+          TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64"
+          curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION.tar.xz" | tar xJ
+          cd node-$NODE_VERSION
+          export AR="$TOOLCHAIN/bin/llvm-ar"
+          export CC="$TOOLCHAIN/bin/aarch64-linux-android26-clang"
+          export CXX="$TOOLCHAIN/bin/aarch64-linux-android26-clang++"
+          ./configure --dest-os=android --dest-cpu=arm64 --cross-compiling
+          make -j"$(nproc)"
+          mkdir -p ../dist/node-android
+          cp out/Release/node ../dist/node-android/node
+
+      - name: 打包 dsh 运行时
+        run: |
+          set -euo pipefail
+          DSH_VERSION=${{ inputs.dsh_version || 'latest' }}
+          mkdir -p dist/dsh-pkg
+          cd dist/dsh-pkg
+          npm install "@deepseek-ai/dsh@$DSH_VERSION" --no-audit --no-fund --omit=dev --platform=linux --arch=arm64
+          cd ../..
+          mkdir -p dist/dsh-runtime
+          cp dist/node-android/node dist/dsh-runtime/node
+          cp -r dist/dsh-pkg/node_modules dist/dsh-runtime/dsh
+          NODE_VERSION=${{ inputs.node_version || 'v24.19.0' }}
+          DSH_RESOLVED=$(node -p "require('./dist/dsh-runtime/dsh/@deepseek-ai/dsh/package.json').version")
+          echo "node=$NODE_VERSION dsh=$DSH_RESOLVED" > dist/dsh-runtime/VERSION
+          cd dist/dsh-runtime
+          zip -qr ../dsh-runtime.zip .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-runtime
+          path: dist/dsh-runtime.zip

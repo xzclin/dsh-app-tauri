@@ -1,0 +1,17 @@
+# 前端
+node_modules/
+dist/
+dist-ssr/
+
+# Rust
+src-tauri/target/
+
+# Android 生成工程：入库定制代码（MainActivity/Manifest），排除构建产物与大文件
+src-tauri/gen/android/.gradle/
+src-tauri/gen/android/**/build/
+src-tauri/gen/android/local.properties
+src-tauri/gen/android/app/src/main/assets/
+
+# 本地产物
+*.log
+.DS_Store

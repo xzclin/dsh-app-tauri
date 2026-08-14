@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>DeepSeek Harness</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: #0e1116;
+        color: #e8eaee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .logo {
+        width: 72px; height: 72px;
+        border-radius: 18px;
+        background: #4d6bfe;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 800; font-size: 26px; color: #fff; letter-spacing: 1px;
+        box-shadow: 0 8px 32px rgba(77, 107, 254, 0.35);
+      }
+      .spinner {
+        width: 30px; height: 30px;
+        border: 3px solid #2a303a; border-top-color: #4d6bfe;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .error { display: none; color: #f2555a; font-size: 13px; text-align: center; line-height: 1.6; }
+      .box { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <div class="logo">dsh</div>
+      <h1 style="font-size: 17px; font-weight: 700">DeepSeek Harness</h1>
+      <div class="spinner" id="spinner"></div>
+      <div style="font-size: 13px; color: #8b93a1">正在启动本地服务…</div>
+      <div class="error" id="error"></div>
+    </div>
+    <script>
+      // 就绪探测与导航由 Rust 侧完成；这里只展示 Rust 推送的错误（如有）
+      window.addEventListener('message', (event) => {
+        if (event.data === 'dsh-error') {
+          document.getElementById('spinner').style.display = 'none'
+          document.getElementById('error').style.display = 'block'
+        }
+      })
+    </script>
+  </body>
+</html>
