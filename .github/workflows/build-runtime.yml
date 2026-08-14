@@ -34,14 +34,13 @@ jobs:
         run: |
           set -euo pipefail
           NODE_VERSION=${{ inputs.node_version || 'v24.19.0' }}
-          NDK_PATH=$ANDROID_NDK_HOME
-          TOOLCHAIN="$NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64"
+          # Node 官方提供 android-configure 脚本（设置 android_ndk_path 等 GYP_DEFINES），
+          # 直接跑 ./configure 会因缺 android_ndk_path 报 gyp 错误
+          NDK=$(find "$ANDROID_HOME/ndk" -maxdepth 1 -type d | tail -n 1)
+          echo "使用 NDK: $NDK"
           curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION.tar.xz" | tar xJ
           cd node-$NODE_VERSION
-          export AR="$TOOLCHAIN/bin/llvm-ar"
-          export CC="$TOOLCHAIN/bin/aarch64-linux-android26-clang"
-          export CXX="$TOOLCHAIN/bin/aarch64-linux-android26-clang++"
-          ./configure --dest-os=android --dest-cpu=arm64 --cross-compiling
+          ./android-configure "$NDK" 26 arm64
           make -j"$(nproc)"
           mkdir -p ../dist/node-android
           cp out/Release/node ../dist/node-android/node
